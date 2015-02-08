@@ -10,7 +10,7 @@ import org.apache.log4j.{ LogManager, Level }
 object StackOverflowMain extends App {
   //LogManager.getRootLogger().setLevel(Level.WARN)
 
-  val sc = new SparkContext("local", "Main")
+  val sc = new SparkContext("local[*]", "Main")
   val minSplits = 1
   val jsonData = sc.textFile(Post.file.getAbsolutePath, minSplits)
   val objData = jsonData.flatMap(Post.parse)
