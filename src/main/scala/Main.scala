@@ -24,7 +24,7 @@ object StackOverflowMain extends App {
   println("Exit")
 
   def readCommand: Boolean = {
-    val command = readLine
+    val command = scala.io.StdIn.readLine("Enter new command:")
     if (command.isEmpty) false
     else {
       //...match commands
