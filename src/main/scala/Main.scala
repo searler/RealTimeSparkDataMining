@@ -2,10 +2,14 @@
 import scala.xml.{ NodeSeq, MetaData }
 import java.io.File
 import scala.io.{ BufferedSource, Source }
-
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.apache.log4j.{ LogManager, Level }
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.ZonedDateTime
+import java.time.LocalDateTime
+import java.time.ZoneOffset
 
 object StackOverflowMain extends App {
   //LogManager.getRootLogger().setLevel(Level.WARN)
@@ -37,7 +41,7 @@ object StackOverflowMain extends App {
         }
         case c if c.startsWith("d:") => {
           //filter for posts that are within the date range
-          val d = c.drop(2).split(",").map(i => Post.dateFormat.parse(i + "T00:00:00.000").getTime)
+          val d = c.drop(2).split(",").map(i => Post.parseDate(i + "T00:00:00.000"))
           query = query.filter(n => n.creationDate >= d(0) && n.creationDate < d(1))
         }
         case "!" => time("Count") {
@@ -64,21 +68,19 @@ object StackOverflowMain extends App {
 }
 
 abstract class StackTable[T] {
+  
+ 
+  val formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
 
   val file: File
 
   def getDate(n: scala.xml.NodeSeq): Long = n.text match {
     case "" => 0
-    case s => dateFormat.parse(s).getTime
+    case s => parseDate(s)
   }
+  
+  def parseDate(s:String) :Long = LocalDateTime.parse(s, formatter).toInstant(ZoneOffset.UTC).getEpochSecond
 
-  def dateFormat = {
-    import java.text.SimpleDateFormat
-    import java.util.TimeZone
-    val f = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS")
-    f.setTimeZone(TimeZone.getTimeZone("GMT"))
-    f
-  }
 
   def getInt(n: scala.xml.NodeSeq): Int = n.text match {
     case "" => 0
