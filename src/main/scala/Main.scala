@@ -15,13 +15,27 @@ object StackOverflowMain extends App {
   //LogManager.getRootLogger().setLevel(Level.WARN)
 
   val sc = new SparkContext("local", "Main")
+  val sqlContext = new org.apache.spark.sql.SQLContext(sc)
+  import sqlContext.createSchemaRDD
+  
   val minSplits = 1
   val jsonData = sc.textFile(Post.file.getAbsolutePath, minSplits)
   val objData = jsonData.flatMap(Post.parse)
   objData.cache
   
   var query: RDD[Post] = objData
+  
+  query.registerTempTable("posts")
+  
+  println("------------------")
+ // sqlContext.sql("SELECT tags FROM posts").foreach { println}
 
+  import sqlContext._
+  val cms = query.where('tags)( (s:Seq[String]) => s.contains("cms"))//.select('id)
+  cms.foreach(println)
+  
+  Thread.sleep(2000)
+  
   println("Enter new command:")
   do {
   } while (readCommand)
@@ -117,8 +131,8 @@ object Post extends StackTable[Post] {
     getInt(x \ "@FavoriteCount"),
     getDate(x \ "@CommunityOwnedDate"))
 
-  def getTags(x: scala.xml.NodeSeq): Array[String] = x.text match {
-    case "" => Array()
+  def getTags(x: scala.xml.NodeSeq): Seq[String] = x.text match {
+    case "" => Seq()
     case s => s.drop(1).dropRight(1).split("><")
   }
 }
@@ -135,7 +149,7 @@ case class Post(
   ownerUserId: Int,
   lastActivityDate: Long,
   title: String,
-  tags: Array[String],
+  tags: Seq[String],
   answerCount: Int,
   commentCount: Int,
   favoriteCount: Int,
