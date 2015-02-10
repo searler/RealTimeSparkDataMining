@@ -34,11 +34,12 @@ object SQL extends App {
 
   time("embedded") {
     import sqlContext._
-    val cms = query.where('tags)((s: Seq[String]) => s.contains("cms")) //.select('id)
-    cms.count()
+    println(query.where('tags)((s: Seq[String]) => s.contains("cms")).select('id).count)
   }
 
-  CommandLine.echo(s => sqlContext.sql(s).collect().mkString("\n"))
+  CommandLine.echo(s => time("cli") {
+    sqlContext.sql(s).collect().mkString("\n")
+  })
 
 }
 
