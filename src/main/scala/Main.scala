@@ -2,20 +2,29 @@
 import scala.xml.{ NodeSeq, MetaData }
 import java.io.File
 import scala.io.{ BufferedSource, Source }
-
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.apache.log4j.{ LogManager, Level }
+import org.apache.spark.storage.StorageLevel
+import org.apache.spark.SparkConf
+import java.time.LocalDateTime
+import java.time.ZoneOffset
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 
 object StackOverflowMain extends App {
   //LogManager.getRootLogger().setLevel(Level.WARN)
 
-  val sc = new SparkContext("local[*]", "Main")
+  val conf = new SparkConf()
+    .setMaster("local[*]")
+    .setAppName("RealtimeMining")
+    .set("spark.local.dir", "tmp")
+  val sc = new SparkContext(conf)
   val minSplits = 1
   val jsonData = sc.textFile(Post.file.getAbsolutePath, minSplits)
   val objData = jsonData.flatMap(Post.parse)
-  objData.cache
-  
+  objData.persist(StorageLevel.MEMORY_AND_DISK)
+
   var query: RDD[Post] = objData
 
   println("Enter new command:")
@@ -26,7 +35,7 @@ object StackOverflowMain extends App {
   def readCommand: Boolean = {
     val command = scala.io.StdIn.readLine(">:")
     if (command == null ||
-        command.isEmpty) false
+      command.isEmpty) false
     else {
       //...match commands
       command match {
@@ -37,7 +46,7 @@ object StackOverflowMain extends App {
         }
         case c if c.startsWith("d:") => {
           //filter for posts that are within the date range
-          val d = c.drop(2).split(",").map(i => Post.dateFormat.parse(i + "T00:00:00.000").getTime)
+          val d = c.drop(2).split(",").map(i => Post.parseDate(i + "T00:00:00.000"))
           query = query.filter(n => n.creationDate >= d(0) && n.creationDate < d(1))
         }
         case "!" => time("Count") {
@@ -69,20 +78,14 @@ abstract class StackTable[T] {
 
   def getDate(n: scala.xml.NodeSeq): Long = n.text match {
     case "" => 0
-    case s => dateFormat.parse(s).getTime
+    case s  => parseDate(s)
   }
 
-  def dateFormat = {
-    import java.text.SimpleDateFormat
-    import java.util.TimeZone
-    val f = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS")
-    f.setTimeZone(TimeZone.getTimeZone("GMT"))
-    f
-  }
+  def parseDate(s: String): Long = LocalDateTime.parse(s, DateTimeFormatter.ISO_LOCAL_DATE_TIME).toInstant(ZoneOffset.UTC).getEpochSecond
 
   def getInt(n: scala.xml.NodeSeq): Int = n.text match {
     case "" => 0
-    case x => x.toInt
+    case x  => x.toInt
   }
 
   def parseXml(x: scala.xml.Elem): T
@@ -117,7 +120,7 @@ object Post extends StackTable[Post] {
 
   def getTags(x: scala.xml.NodeSeq): Array[String] = x.text match {
     case "" => Array()
-    case s => s.drop(1).dropRight(1).split("><")
+    case s  => s.drop(1).dropRight(1).split("><")
   }
 }
 
