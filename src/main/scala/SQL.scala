@@ -5,7 +5,6 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.storage.StorageLevel
 
 object SQL extends App {
-  //LogManager.getRootLogger().setLevel(Level.WARN)
 
   val conf = new SparkConf()
     .setMaster("local[*]")
@@ -24,7 +23,7 @@ object SQL extends App {
   query.registerTempTable("posts")
 
   import Timer._
-  
+
   time("load") {
     query.count()
   }
@@ -39,7 +38,7 @@ object SQL extends App {
     cms.count()
   }
 
-  val command = scala.io.StdIn.readLine(">:")
+  CommandLine.echo(s => sqlContext.sql(s).collect().mkString("\n"))
 
 }
 

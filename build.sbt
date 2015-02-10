@@ -11,3 +11,5 @@ libraryDependencies += "org.apache.spark" %% "spark-sql" % "1.2.0"
 fork := true
 
 connectInput in run := true
+
+outputStrategy in run := Some(StdoutOutput)
